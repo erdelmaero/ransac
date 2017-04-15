@@ -70,7 +70,8 @@ func main() {
 	prob.SetModel(calcModel)
 
   // Estimate model. Estimate takes maxIterations, sampleSize (two to define a 2D line) and inliersRatioLimit.
-	model, _, _, err := prob.Estimate(1000, 2, 0.5)
+  // The Last Parameter is the maxError.
+	model, _, _, err := prob.Estimate(1000, 2, 0.5, 0.1)
 	fmt.Println(model, err)
 }
 
