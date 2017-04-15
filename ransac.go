@@ -54,16 +54,14 @@ func (p *Problem) SetData(data []map[string]float64) {
 	p.data = data
 }
 
-func (p Problem) classifyInliers(model map[string]float64, sample []map[string]float64) ([]map[string]float64, []map[string]float64) {
+func (p Problem) classifyInliers(model map[string]float64, sample []map[string]float64, maxError float64) ([]map[string]float64, []map[string]float64) {
 	var inliers []map[string]float64
 	var outliers []map[string]float64
-
-	// fmt.Println("classifyInliers...")
 
 	for _, point := range p.data {
 		if !existsInData(sample, point) {
 			error := p.fit(model, point)
-			if error <= 0.5 {
+			if error <= maxError {
 				inliers = append(inliers, point)
 			} else {
 				outliers = append(outliers, point)
@@ -74,7 +72,7 @@ func (p Problem) classifyInliers(model map[string]float64, sample []map[string]f
 }
 
 // Estimate does the actual work of fitting.
-func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64) (map[string]float64, []map[string]float64, []map[string]float64, float64) {
+func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64) (map[string]float64, []map[string]float64, []map[string]float64, float64) {
 	var iteration int
 	var bestInliers []map[string]float64
 	var bestOutliers []map[string]float64
@@ -84,7 +82,7 @@ func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float
 	for iteration <= maxIterations {
 		sample := p.sample(sampleSize)
 		model := p.model(sample)
-		inliers, outliers := p.classifyInliers(model, sample)
+		inliers, outliers := p.classifyInliers(model, sample, maxError)
 		inliersRatio := float64(len(inliers)) / float64(len(p.data))
 		if inliersRatio < inliersRatioLimit {
 			candidateError := p.calcModelError(model)
