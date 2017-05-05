@@ -3,21 +3,20 @@ package ransac
 import (
 	"math"
 	"math/rand"
-	"reflect"
 )
 
-type calcError func(map[string]float64, map[string]float64) float64
-type calcModel func([]map[string]float64) map[string]float64
+type calcError func(map[string]float64, [2]float64) float64
+type calcModel func([][2]float64) map[string]float64
 
 // Problem is the formulation of the ransac problem.
 type Problem struct {
-	data  []map[string]float64
+	data  [][2]float64
 	fit   calcError
 	model calcModel
 }
 
-func (p Problem) sample(sampleSize int) []map[string]float64 {
-	sample := make([]map[string]float64, sampleSize)
+func (p Problem) sample(sampleSize int) [][2]float64 {
+	sample := make([][2]float64, sampleSize)
 	currentSample := 0
 
 	for currentSample < sampleSize {
@@ -51,13 +50,13 @@ func (p *Problem) SetModelError(fn calcError) {
 }
 
 // SetData sets the function, which sets the dataset.
-func (p *Problem) SetData(data []map[string]float64) {
+func (p *Problem) SetData(data [][2]float64) {
 	p.data = data
 }
 
-func (p Problem) classifyInliers(model map[string]float64, sample []map[string]float64, maxError float64) ([]map[string]float64, []map[string]float64) {
-	var inliers []map[string]float64
-	var outliers []map[string]float64
+func (p Problem) classifyInliers(model map[string]float64, sample [][2]float64, maxError float64) ([][2]float64, [][2]float64) {
+	var inliers [][2]float64
+	var outliers [][2]float64
 
 	for _, point := range p.data {
 		if !existsInData(sample, point) {
@@ -73,14 +72,13 @@ func (p Problem) classifyInliers(model map[string]float64, sample []map[string]f
 }
 
 // Estimate does the actual work of fitting.
-func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (map[string]float64, []map[string]float64, []map[string]float64, float64) {
-	var iteration int
-	var bestInliers []map[string]float64
-	var bestOutliers []map[string]float64
+func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (map[string]float64, [][2]float64, [][2]float64, float64) {
+	var bestInliers [][2]float64
+	var bestOutliers [][2]float64
 	var bestModel map[string]float64
 	var bestError float64 = math.Inf(1)
 
-	for iteration <= maxIterations {
+	for iteration := 0; iteration <= maxIterations; iteration++ {
 		sample := p.sample(sampleSize)
 		model := p.model(sample)
 		inliers, outliers := p.classifyInliers(model, sample, maxError)
@@ -98,7 +96,6 @@ func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float
 				bestError = candidateError
 			}
 		}
-		iteration = iteration + 1
 	}
 
 	return bestModel, bestInliers, bestOutliers, bestError
@@ -108,9 +105,9 @@ func random(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
-func existsInData(data []map[string]float64, sample map[string]float64) bool {
+func existsInData(data [][2]float64, sample [2]float64) bool {
 	for _, point := range data {
-		if reflect.DeepEqual(point, sample) {
+		if point[0] == sample[0] && point[1] == sample[1] {
 			return true
 		}
 	}
