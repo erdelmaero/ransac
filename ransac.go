@@ -1,6 +1,7 @@
 package ransac
 
 import (
+	"math"
 	"math/rand"
 	"reflect"
 )
@@ -72,24 +73,28 @@ func (p Problem) classifyInliers(model map[string]float64, sample []map[string]f
 }
 
 // Estimate does the actual work of fitting.
-func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64) (map[string]float64, []map[string]float64, []map[string]float64, float64) {
+func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (map[string]float64, []map[string]float64, []map[string]float64, float64) {
 	var iteration int
 	var bestInliers []map[string]float64
 	var bestOutliers []map[string]float64
 	var bestModel map[string]float64
-	var bestError float64 = 9999999999
+	var bestError float64 = math.Inf(1)
 
 	for iteration <= maxIterations {
 		sample := p.sample(sampleSize)
 		model := p.model(sample)
 		inliers, outliers := p.classifyInliers(model, sample, maxError)
 		inliersRatio := float64(len(inliers)) / float64(len(p.data))
-		if inliersRatio < inliersRatioLimit {
+		if inliersRatio >= inliersRatioLimit {
+			candidateModel := model
+			if improveWithConsensusSet {
+				candidateModel = p.model(inliers)
+			}
 			candidateError := p.calcModelError(model)
 			if candidateError < bestError {
 				bestInliers = inliers
 				bestOutliers = outliers
-				bestModel = model
+				bestModel = candidateModel
 				bestError = candidateError
 			}
 		}
