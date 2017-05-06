@@ -10,17 +10,18 @@ type calcModel func([][2]float64) map[string]float64
 
 // Problem is the formulation of the ransac problem.
 type Problem struct {
-	data  [][2]float64
-	fit   calcError
-	model calcModel
+	data       [][2]float64
+	dataLength int
+	fit        calcError
+	model      calcModel
 }
 
-func (p Problem) sample(sampleSize int) [][2]float64 {
+func (p *Problem) sample(sampleSize int) [][2]float64 {
 	sample := make([][2]float64, sampleSize)
 	currentSample := 0
 
 	for currentSample < sampleSize {
-		randomIndex := random(0, len(p.data))
+		randomIndex := random(0, p.dataLength)
 		exists := existsInData(sample, p.data[randomIndex])
 		if !exists {
 			sample[currentSample] = p.data[randomIndex]
@@ -30,7 +31,7 @@ func (p Problem) sample(sampleSize int) [][2]float64 {
 	return sample
 }
 
-func (p Problem) calcModelError(model map[string]float64) float64 {
+func (p *Problem) calcModelError(model map[string]float64) float64 {
 	var ssd float64
 	for _, point := range p.data {
 		error := p.fit(model, point)
@@ -52,9 +53,10 @@ func (p *Problem) SetModelError(fn calcError) {
 // SetData sets the function, which sets the dataset.
 func (p *Problem) SetData(data [][2]float64) {
 	p.data = data
+	p.dataLength = len(data)
 }
 
-func (p Problem) classifyInliers(model map[string]float64, sample [][2]float64, maxError float64) ([][2]float64, [][2]float64) {
+func (p *Problem) classifyInliers(model map[string]float64, sample [][2]float64, maxError float64) ([][2]float64, [][2]float64) {
 	var inliers [][2]float64
 	var outliers [][2]float64
 
@@ -72,23 +74,24 @@ func (p Problem) classifyInliers(model map[string]float64, sample [][2]float64, 
 }
 
 // Estimate does the actual work of fitting.
-func (p Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (map[string]float64, [][2]float64, [][2]float64, float64) {
+func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (map[string]float64, [][2]float64, [][2]float64, float64) {
 	var bestInliers [][2]float64
 	var bestOutliers [][2]float64
 	var bestModel map[string]float64
 	var bestError float64 = math.Inf(1)
+	dataLength := float64(p.dataLength)
 
 	for iteration := 0; iteration <= maxIterations; iteration++ {
 		sample := p.sample(sampleSize)
 		model := p.model(sample)
 		inliers, outliers := p.classifyInliers(model, sample, maxError)
-		inliersRatio := float64(len(inliers)) / float64(len(p.data))
+		inliersRatio := float64(len(inliers)) / dataLength
 		if inliersRatio >= inliersRatioLimit {
 			candidateModel := model
 			if improveWithConsensusSet {
 				candidateModel = p.model(inliers)
 			}
-			candidateError := p.calcModelError(model)
+			candidateError := p.calcModelError(candidateModel)
 			if candidateError < bestError {
 				bestInliers = inliers
 				bestOutliers = outliers
