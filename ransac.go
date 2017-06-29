@@ -3,21 +3,23 @@ package ransac
 import (
 	"math"
 	"math/rand"
+
+	"github.com/gonum/matrix/mat64"
 )
 
-type calcError func(map[string]float64, [2]float64) float64
-type calcModel func([][2]float64) map[string]float64
+type calcError func(*mat64.Vector, *mat64.Vector) float64
+type calcModel func([]*mat64.Vector) *mat64.Vector
 
 // Problem is the formulation of the ransac problem.
 type Problem struct {
-	data       [][2]float64
+	data       []*mat64.Vector
 	dataLength int
 	fit        calcError
 	model      calcModel
 }
 
-func (p *Problem) sample(sampleSize int) [][2]float64 {
-	sample := make([][2]float64, sampleSize)
+func (p *Problem) sample(sampleSize int) []*mat64.Vector {
+	sample := make([]*mat64.Vector, sampleSize)
 	currentSample := 0
 
 	for currentSample < sampleSize {
@@ -31,7 +33,7 @@ func (p *Problem) sample(sampleSize int) [][2]float64 {
 	return sample
 }
 
-func (p *Problem) calcModelError(model map[string]float64) float64 {
+func (p *Problem) calcModelError(model *mat64.Vector) float64 {
 	var ssd float64
 	for _, point := range p.data {
 		error := p.fit(model, point)
@@ -51,14 +53,14 @@ func (p *Problem) SetModelError(fn calcError) {
 }
 
 // SetData sets the function, which sets the dataset.
-func (p *Problem) SetData(data [][2]float64) {
+func (p *Problem) SetData(data []*mat64.Vector) {
 	p.data = data
 	p.dataLength = len(data)
 }
 
-func (p *Problem) classifyInliers(model map[string]float64, sample [][2]float64, maxError float64) ([][2]float64, [][2]float64) {
-	var inliers [][2]float64
-	var outliers [][2]float64
+func (p *Problem) classifyInliers(model *mat64.Vector, sample []*mat64.Vector, maxError float64) ([]*mat64.Vector, []*mat64.Vector) {
+	var inliers []*mat64.Vector
+	var outliers []*mat64.Vector
 
 	for _, point := range p.data {
 		if !existsInData(sample, point) {
@@ -74,10 +76,10 @@ func (p *Problem) classifyInliers(model map[string]float64, sample [][2]float64,
 }
 
 // Estimate does the actual work of fitting.
-func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (map[string]float64, [][2]float64, [][2]float64, float64) {
-	var bestInliers [][2]float64
-	var bestOutliers [][2]float64
-	var bestModel map[string]float64
+func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (*mat64.Vector, []*mat64.Vector, []*mat64.Vector, float64) {
+	var bestInliers []*mat64.Vector
+	var bestOutliers []*mat64.Vector
+	var bestModel *mat64.Vector
 	var bestError float64 = math.Inf(1)
 	dataLength := float64(p.dataLength)
 
@@ -108,9 +110,9 @@ func random(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
-func existsInData(data [][2]float64, sample [2]float64) bool {
+func existsInData(data []*mat64.Vector, sample *mat64.Vector) bool {
 	for _, point := range data {
-		if point[0] == sample[0] && point[1] == sample[1] {
+		if point == sample {
 			return true
 		}
 	}
