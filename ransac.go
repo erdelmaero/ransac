@@ -77,10 +77,17 @@ func (p *Problem) classifyInliers(model *mat64.Vector, sample []*mat64.Vector, m
 
 // Estimate does the actual work of fitting.
 func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit float64, maxError float64, improveWithConsensusSet bool) (*mat64.Vector, []*mat64.Vector, []*mat64.Vector, float64) {
+
 	var bestInliers []*mat64.Vector
 	var bestOutliers []*mat64.Vector
 	var bestModel *mat64.Vector
 	var bestError float64 = math.Inf(1)
+
+	// Return Infinite Error, if datasize is smaller than sampleSize
+	if p.dataLength < sampleSize {
+		return bestModel, bestInliers, bestOutliers, bestError
+	}
+
 	dataLength := float64(p.dataLength)
 
 	for iteration := 0; iteration <= maxIterations; iteration++ {
