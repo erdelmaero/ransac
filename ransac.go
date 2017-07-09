@@ -42,7 +42,7 @@ func (p *Problem) calcModelError(model *mat64.Vector) float64 {
 	return ssd
 }
 
-// SetModel sets a function which describes the mode.
+// SetModel sets a function which describes the model.
 func (p *Problem) SetModel(fn calcModel) {
 	p.model = fn
 }
