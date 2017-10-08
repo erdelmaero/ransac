@@ -1,6 +1,7 @@
 package ransac
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -81,7 +82,7 @@ func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit floa
 	var bestInliers []*mat64.Vector
 	var bestOutliers []*mat64.Vector
 	var bestModel *mat64.Vector
-	var bestError float64 = math.Inf(1)
+	var bestError = math.Inf(1)
 
 	// Return Infinite Error, if datasize is smaller than sampleSize
 	if p.dataLength < sampleSize {
@@ -94,6 +95,9 @@ func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit floa
 		sample := p.sample(sampleSize)
 		model := p.model(sample)
 		inliers, outliers := p.classifyInliers(model, sample, maxError)
+
+		fmt.Println(len(inliers))
+
 		inliersRatio := float64(len(inliers)) / dataLength
 		if inliersRatio >= inliersRatioLimit {
 			candidateModel := model
