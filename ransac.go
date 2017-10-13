@@ -1,7 +1,6 @@
 package ransac
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 
@@ -95,8 +94,6 @@ func (p *Problem) Estimate(maxIterations, sampleSize int, inliersRatioLimit floa
 		sample := p.sample(sampleSize)
 		model := p.model(sample)
 		inliers, outliers := p.classifyInliers(model, sample, maxError)
-
-		fmt.Println(len(inliers))
 
 		inliersRatio := float64(len(inliers)) / dataLength
 		if inliersRatio >= inliersRatioLimit {
